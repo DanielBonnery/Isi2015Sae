@@ -1,8 +1,8 @@
 Package: Isi2015Sae
-Title: What the Package Does (one line, title case)
+Title: Data and programs for the ISI course "Small-area estimation methods with applications" by Partha Lahiri
 Version: 0.0.0.9000
-Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph)
+Authors@R: person("Daniel", "Bonn\'{e}ry", , "dbonnery@umd.edu", role = c("aut", "cre"))
+Description: This package contains data and programs for the ISI course "Small-area estimation methods with applications" by Partha Lahiri
 Depends: R (>= 3.2.0)
-License: What license is it under?
+License: GPL?
 LazyData: true
