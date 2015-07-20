@@ -29,8 +29,8 @@ X2<-seq(qgamma(.001,alpha,rate=beta),qgamma(.999,alpha,rate=beta),length.out=200
 X3<-g$post.mean[1,1]+x*3*g$post.sd[1,1]
 #plot posterior densityes
 par(mfrow=c(3,1))
-plot(X1,dnorm(x1,mean=g$beta.new[2,1],sd=sqrt(g$beta.var[2,2])),xlab='Posterior density of beta1',ylab='density',type='l',col="black",lwd=3)
-plot(X2,dgamma(x2,shape=alpha,rate=beta),xlab='Posterior density of A',ylab='density',type='l',col="black",lwd=3)
+plot(X1,dnorm(X1,mean=g$beta.new[2,1],sd=sqrt(g$beta.var[2,2])),xlab='Posterior density of beta1',ylab='density',type='l',col="black",lwd=3)
+plot(X2,dgamma(X2,shape=alpha,rate=beta),xlab='Posterior density of A',ylab='density',type='l',col="black",lwd=3)
 abline(v=A.mean,lwd=3,col='gray')
 abline(v=A.summary['Median'],lwd=3,col='darkgray')
-plot(X3,dnorm(x3,mean=g$post.mean[1,1],sd=g$post.sd[1,1]),xlab='Posterior density of $theta_i$ for Clemente.',ylab='density',type='l',col="black",lwd=3)
+plot(X3,dnorm(X3,mean=g$post.mean[1,1],sd=g$post.sd[1,1]),xlab='Posterior density of $theta_i$ for Clemente.',ylab='density',type='l',col="black",lwd=3)
