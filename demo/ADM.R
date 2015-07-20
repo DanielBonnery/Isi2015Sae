@@ -10,7 +10,7 @@ g<-gbp(hat.P,sqrt(psi),x1,model="gaussian")
 #3.1 Print the summary
 summary(g)
 #3.2 Obtain Shrinkage plot
-plot(g)
+#plot(g)
 #3.3 Posterior densities 
 #Computation of the posterior distribution of A parameters
 #we load this library to get trigammaInverse and digamma functions 
