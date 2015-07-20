@@ -68,3 +68,4 @@ densityplot(~beta.1[,paste0("theta[1]")]|beta.1$model,
 table1<-adply(do.call(abind,c(lapply(fits,function(x){x$BUGSoutput$summary[c("A","beta[2]","theta[1]"),c(1,2,5,3,7)]}),list(along=3))),c(3,1),.id=list("Model","Parameter"))
 names(table1)<-c("Model","Parameter","Mean","s.d.","median","CI-LB","CI-UB" )
 table1$Parameter<-rep(c("$A$","$\\beta_1$","Clemente"),each=3)
+table1
