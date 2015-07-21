@@ -1,5 +1,4 @@
 library(Isi2015Sae)
-#Exersice 5
 data(baseball);attach(baseball)
 n = nrow(baseball)
 # variable of interest, y
@@ -95,9 +94,9 @@ beta.star = matrix(0, 1000, 2)
 diff.theta = rep(0, 1000)
 seed = runif(1000, -1000, 1000)
 #bootstrap
-for (j in 1:1000){
-  #set seed
-  set.seed(seed[j])
+set.seed(1)
+bootrep<-
+replicate(1000,(function(){
   #generate two levels of errors
   vb_i = rnorm(n, 0, A.hat.pr)
   eb_i = rnorm(n, 0, shi_i)
@@ -108,13 +107,14 @@ for (j in 1:1000){
   beta.star[j,] = beta.star_j
   #estimate of A using PR method based on bootstrap sample
   A_tld_j = 1/(n-1)*(sum((y_i-x_mtx%*%beta.star_j)^2)-sum(shi_i*(1-h_jj)))
-  A.star[j] = max(0, A_tld_j)#estimate of B on bootstrap sample
-  B.star_j = shi_i/(shi_i+A.star[j])
+  A.star = max(0, A_tld_j)#estimate of B on bootstrap sample
+  B.star_j = shi_i/(shi_i+A.star)
   #EBLUPs based on bootstrap sample
-  ELUP.star[j] = (1-B.star_j)*y_i[1] + B.star_j*x_mtx[1,]%*%beta.star_j
+  ELUP.star = (1-B.star_j)*y_i[1] + B.star_j*x_mtx[1,]%*%beta.star_j
   #the difference between EBLUPs based on bootstrap sample and the generated theta_i
-  diff.theta[j] = ELUP.star[j] - mu_i[1] - vb_i[1]
-}
-mse.BL = mean(sapply(1:1000, function(i) g1i(A.star[i])+g2i(A.star[i]))) + mean((ELUP.star - ELUP.pr[1])^2)
-mse.boot = mean((diff.theta)^2)
+  diff.theta = ELUP.star - mu_i[1] - vb_i[1]
+c(A_tld_j=A_tld_j,A.star=A.star,B.star_j=B.star_j,ELUP.star=ELUP.star,diff.theta=diff.theta)
+  })())
+mse.BL = mean(sapply(1:1000, function(i) g1i(bootrep["A.star",i])+g2i(bootrep["A.star",i]))) + mean((bootrep["ELUP.star",] - ELUP.pr[1])^2)
+mse.boot = mean((bootrep["diff.theta",])^2)
 
