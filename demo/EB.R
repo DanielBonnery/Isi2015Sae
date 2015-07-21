@@ -1,54 +1,117 @@
-
-data(baseball)
-attach(baseball)
-m = nrow(baseball)
-n = 45
-#1. direct(sample proportion)
-hat.P.d = hat.P
-#2. overall sample proportion, a synthetic estimator when domain specific auxiliary information is not available
-osp = mean(hat.P)
-#3. regression synthetic estimator(when area specific auxiliary information is available)
-baseball.reg = lm(hat.P ~ x1, data = baseball)
-b.hat = baseball.reg$coeff
-hat.P.s = baseball.reg$fitted.values
-#4. regression synthetic estimator using a logit link
-logit.hat.P = log(hat.P/(1-hat.P))
-baseball.reg.logit = lm(logit.hat.P ~ x1, data = baseball)
-b.hat.logit = baseball.reg.logit$coeff
-hat.P.s.logit = exp(baseball.reg.logit$fitted.values)/(1+ exp(baseball.reg.logit$fitted.values))
-#5. composite 1: different weight for different Players
-var.dir = (hat.P.d*(1 - hat.P.d))/n
-phi.i.hat.star = 1 - var.dir/(hat.P.s - hat.P.d)^2
-hat.P.c1 = phi.i.hat.star*hat.P.d + (1 - phi.i.hat.star)*hat.P.s
-### composite 2: same weight
-num = sum(var.dir)
-den = sum((hat.P.s - hat.P.d)^2)
-phi.hat.star = 1 - (num/den)
-hat.P.c2 = phi.hat.star*hat.P.d + (1 - phi.hat.star)*hat.P.s
-### EB or EBLUP using common mean model(assuming no auxiliary information is available)
-shi.hat = osp*(1 - osp)/n
-A.hat = var(hat.P) - shi.hat
-B.hat = shi.hat/(shi.hat + A.hat)
-B.hat
-hat.P.cm = (1 - B.hat)*hat.P + B.hat*osp
-### EB or EBLUP using Fay-Herriot model(considering equal sampling variance and x1 and intercept as covariate)
-shi.hat.s = osp*(1 - osp)/n
-S.fh = sum((hat.P - hat.P.s)^2)
-A.hat.fh = S.fh/(m - 2) - shi.hat.s
-B.hat.fh = shi.hat.s/(shi.hat.s + A.hat.fh)
-B.hat.fh
-hat.P.fh = (1 - B.hat.fh)*hat.P + B.hat.fh*hat.P.s
-res = round(cbind("Direct estimator"=hat.P.d, 
-                  "Overall sample proportion"=osp, 
-                  "Regression Synthetic"=hat.P.s, 
-                  reg.synth.logit=hat.P.s.logit, "Comp1(diff wt)"=hat.P.c1,"Comp2(same wt)"=hat.P.c2, "EB:CM"=hat.P.cm, "EB:FH"=hat.P.fh),3)
-res.baseball = data.frame("Player"=Player,res)
-
-evalu=t(round(apply(res,2,function(r){
-  c(ASD=sum((res[,i] - P)^2)/m,
-    ARSD=sum(((res[,i] - P)/P)^2)/m,
-    AAD=sum(abs(res[,i] - P))/m,
-    ARAD=sum(abs((res[,i] - P)/P))/m)}),3))
-evalu
-@
-
+library(Isi2015Sae)
+#Exersice 5
+data(baseball);attach(baseball)
+n = nrow(baseball)
+# variable of interest, y
+hat.P.bar = mean(baseball$hat.P)
+#estimate of shi
+shi_i = hat.P.bar*(1-hat.P.bar)/45
+#PR-method
+#OLS of beta
+beta_ols = lm(hat.P~x1, data = baseball)$coeff
+#design matrix
+x_mtx = cbind(1, baseball$x1)#calculate h_jj
+h_jj_mid = matrix(apply(sapply(1:n, function(i) x_mtx[i,]%*%t(x_mtx[i,])), 1, sum), 2, 2)
+h_jj = sapply(1:n, function(i)t(x_mtx[i,])%*%solve(h_jj_mid)%*%x_mtx[i,])
+#calcualte A tilde
+A_tld = 1/(n-1)*(sum((hat.P-x_mtx%*%beta_ols)^2)-sum(shi_i*(1-h_jj)))
+#estimate of A
+A.hat.pr = max(0, A_tld)
+#estimate of B
+B.hat.pr = shi_i/(shi_i+A.hat.pr)
+#EBLUPs
+ELUP.pr = (1-B.hat.pr)*hat.P + B.hat.pr*x_mtx%*%beta_ols
+#ASD
+ASD.pr = sum((ELUP.pr - baseball$P)^2)
+#adjusted REML
+#calculate sum of residual square
+resq = sum((hat.P - x_mtx%*%beta_ols)^2)
+#adjusted REML of A
+A.hat.reml1 = (-(6*shi_i-resq/2) + sqrt((6*shi_i-resq/2)^2+28*shi_i^2))/14
+A.hat.reml2 = (-(4*shi_i-resq/2) + sqrt((4*shi_i-resq/2)^2+48*shi_i^2))/12
+#estimate of B
+B.hat.reml1 = shi_i/(shi_i+A.hat.reml1)
+B.hat.reml2 = shi_i/(shi_i+A.hat.reml2)
+#EBLUPs
+ELUP.reml1 = (1-B.hat.reml1)*hat.P + B.hat.reml1*x_mtx%*%beta_ols
+ELUP.reml2 = (1-B.hat.reml2)*hat.P + B.hat.reml2*x_mtx%*%beta_ols
+#ASD
+ASD.reml1 = sum((ELUP.reml1 - baseball$P)^2)
+ASD.reml2 = sum((ELUP.reml2 - baseball$P)^2)
+#plot EBLUPs versus true values
+plot.data = data.frame(Estimate = rep(c("PR", "REML1", "REML2"), each = 18),
+                       EBLUP = c(ELUP.pr, ELUP.reml1, ELUP.reml2),
+                       P = rep(baseball$P, 3))
+p = ggplot(plot.data, aes(P, EBLUP))+ geom_abline(intercept = 0, slope = 1)
+p+geom_point(aes(colour = factor(Estimate)))beta_A.hat = beta_ols
+LR_A = det(t(x_mtx)%*%x_mtx)^(-1/2)*exp(-1/2*sum((hat.P - x_mtx%*%beta_A.hat)^2))
+#mse_PR
+#clacualte g1, g2, and g3
+g1i = function(A){A*shi_i/(A+shi_i)}
+g2i = function(A){
+  p1 = shi_i^2/(A+shi_i)^2
+  p2.mid = matrix(apply(sapply(1:n, function(i) x_mtx[i,]%*%t(x_mtx[i,])/(A+shi_i)), 1, sum), 2, 2)
+  p2 = t(x_mtx[1,])%*%solve(p2.mid)%*%x_mtx[1,]
+  p1*p2
+}
+g3i = 2*shi_i^2/(n*(A.hat.pr+shi_i))
+p1_pr = g1i(A.hat.pr) + g2i(A.hat.pr)
+mse.pr = p1_pr + g3i
+beta_ols = lm(hat.P~x1, data = baseball)$coeff
+#write a function to provide PR estimates when u th area is deleted.
+PR_JRR = function(dim, y,x_matrix){
+  beta_u = solve(t(x_matrix)%*%x_matrix)%*%(t(x_matrix)%*%y)
+  h_jj_mid.u = matrix(apply(sapply(1:dim, function(i) x_matrix[i,]%*%t(x_matrix[i,])), 1, sum), 2, 2)
+  h_jj.u = sapply(1:dim, function(i)t(x_matrix[i,])%*%solve(h_jj_mid.u)%*%x_matrix[i,])
+  A_tld.u = 1/(dim-1)*(sum(y-x_matrix%*%beta_u)^2)-sum(shi_i*(1-h_jj.u)))
+A.u = max(0, A_tld.u)
+B.u = shi_i/(shi_i+A.u)
+return(list(A.u = A.u, beta_u = beta_u, B.u = B.u))
+}
+#estimate of A when u th area is deleted.
+A_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$A.u)
+#estimate of B when u th area is deleted.
+B_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$B.u)
+#estimate of beta when u th area is deleted.
+beta_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$beta_u)
+#clacualte mse_JLWp1_jlw = g1i(A.hat.pr)
+p2_jlw = - (n-1)/n*sum(sapply(1:n, function(i)g1i(A_u[i])-g1i(A.hat.pr)))
+theta.tld = sapply(1:n, function(u) B_u[u]*x_mtx[1,]%*%beta_u[,u]+(1-B_u[u])*hat.P[1])
+p3_jlw = (n-1)/n*sum((theta.tld-ELUP.pr[1])^2)
+mse.JLW = p1_jlw + p2_jlw + p3_jlw
+#calcualte mse_CL using two versions of w_u
+p2_CL = -(n-1)/n*sum(sapply(1:n, function(u) g1i(A_u[u])+g2i(A_u[u])))
+mse.CL1 = n*p1_pr + p2_CL + p3_jlw
+mse.CL2 = p1_pr - sum(h_jj*(sapply(1:n, function(u) g1i(A_u[u]) + g2i(A_u[u]) - g1i(A.hat.pr) - g2i(A.hat.pr))))+sum(h_jj*(theta.tld-ELUP.pr[1])^2)
+#mse using boot strap
+#calcualte estimated mean
+mu_i = x_mtx%*%beta_ols
+#claim variables
+A.star = rep(0, 1000)
+ELUP.star = rep(0, 1000)
+beta.star = matrix(0, 1000, 2)
+diff.theta = rep(0, 1000)
+seed = runif(1000, -1000, 1000)
+#bootstrap
+for (j in 1:1000){
+  #set seed
+  set.seed(seed[j])
+  #generate two levels of errors
+  vb_i = rnorm(n, 0, A.hat.pr)
+  eb_i = rnorm(n, 0, shi_i)
+  #generate bootstrap sample
+  y_i = mu_i + vb_i + eb_i
+  #ols based on bootstrap sample
+  beta.star_j = solve(t(x_mtx)%*%x_mtx)%*%(t(x_mtx)%*%y_i)
+  beta.star[j,] = beta.star_j
+  #estimate of A using PR method based on bootstrap sample
+  A_tld_j = 1/(n-1)*(sum((y_i-x_mtx%*%beta.star_j)^2)-sum(shi_i*(1-h_jj)))
+  A.star[j] = max(0, A_tld_j)#estimate of B on bootstrap sample
+  B.star_j = shi_i/(shi_i+A.star[j])
+  #EBLUPs based on bootstrap sample
+  ELUP.star[j] = (1-B.star_j)*y_i[1] + B.star_j*x_mtx[1,]%*%beta.star_j
+  #the difference between EBLUPs based on bootstrap sample and the generated theta_i
+  diff.theta[j] = ELUP.star[j] - mu_i[1] - vb_i[1]
+}
+mse.BL = mean(sapply(1:1000, function(i) g1i(A.star[i])+g2i(A.star[i]))) + mean((ELUP.star - ELUP.pr[1])^2)
+mse.boot = mean((diff.theta)^2)
