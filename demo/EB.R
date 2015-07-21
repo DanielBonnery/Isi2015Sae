@@ -42,9 +42,10 @@ ASD.reml2 = sum((ELUP.reml2 - baseball$P)^2)
 plot.data = data.frame(Estimate = rep(c("PR", "REML1", "REML2"), each = 18),
                        EBLUP = c(ELUP.pr, ELUP.reml1, ELUP.reml2),
                        P = rep(baseball$P, 3))
-p = ggplot(plot.data, aes(P, EBLUP))+ geom_abline(intercept = 0, slope = 1)
-p+geom_point(aes(colour = factor(Estimate)))beta_A.hat = beta_ols
-LR_A = det(t(x_mtx)%*%x_mtx)^(-1/2)*exp(-1/2*sum((hat.P - x_mtx%*%beta_A.hat)^2))
+#library("ggplot")
+#p = ggplot(plot.data, aes(P, EBLUP))+ geom_abline(intercept = 0, slope = 1)
+#p+geom_point(aes(colour = factor(Estimate)))beta_A.hat = beta_ols
+#LR_A = det(t(x_mtx)%*%x_mtx)^(-1/2)*exp(-1/2*sum((hat.P - x_mtx%*%beta_A.hat)^2))
 #mse_PR
 #clacualte g1, g2, and g3
 g1i = function(A){A*shi_i/(A+shi_i)}
@@ -63,10 +64,10 @@ PR_JRR = function(dim, y,x_matrix){
   beta_u = solve(t(x_matrix)%*%x_matrix)%*%(t(x_matrix)%*%y)
   h_jj_mid.u = matrix(apply(sapply(1:dim, function(i) x_matrix[i,]%*%t(x_matrix[i,])), 1, sum), 2, 2)
   h_jj.u = sapply(1:dim, function(i)t(x_matrix[i,])%*%solve(h_jj_mid.u)%*%x_matrix[i,])
-  A_tld.u = 1/(dim-1)*(sum(y-x_matrix%*%beta_u)^2)-sum(shi_i*(1-h_jj.u)))
-A.u = max(0, A_tld.u)
-B.u = shi_i/(shi_i+A.u)
-return(list(A.u = A.u, beta_u = beta_u, B.u = B.u))
+  A_tld.u = 1/(dim-1)*(sum(y-x_matrix%*%beta_u)^2)-sum(shi_i*(1-h_jj.u))
+  A.u = max(0, A_tld.u)
+  B.u = shi_i/(shi_i+A.u)
+  return(list(A.u = A.u, beta_u = beta_u, B.u = B.u))
 }
 #estimate of A when u th area is deleted.
 A_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$A.u)
@@ -75,6 +76,7 @@ B_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$B.u)
 #estimate of beta when u th area is deleted.
 beta_u = sapply(1:n, function(i) PR_JRR(n-1, hat.P[-i], x_mtx[-i,])$beta_u)
 #clacualte mse_JLWp1_jlw = g1i(A.hat.pr)
+p1_jlw = g1i(A.hat.pr)
 p2_jlw = - (n-1)/n*sum(sapply(1:n, function(i)g1i(A_u[i])-g1i(A.hat.pr)))
 theta.tld = sapply(1:n, function(u) B_u[u]*x_mtx[1,]%*%beta_u[,u]+(1-B_u[u])*hat.P[1])
 p3_jlw = (n-1)/n*sum((theta.tld-ELUP.pr[1])^2)
@@ -115,3 +117,4 @@ for (j in 1:1000){
 }
 mse.BL = mean(sapply(1:1000, function(i) g1i(A.star[i])+g2i(A.star[i]))) + mean((ELUP.star - ELUP.pr[1])^2)
 mse.boot = mean((diff.theta)^2)
+
